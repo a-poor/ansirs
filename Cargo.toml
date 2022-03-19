@@ -14,3 +14,4 @@ name = "ansitest"
 path = "src/bin/bin.rs"
 
 [dependencies]
+unicode-width = "0.1.7"

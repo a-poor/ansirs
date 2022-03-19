@@ -3,27 +3,37 @@ use ansirs::{Color, Style};
 fn main() {
     println!("Hello, world!");
     let empty = Style::new();
-    // println!("empty = {:?}", empty);
 
-    let red = empty.with_foreground(Color::Red);
-    // println!("empty = {:?}", empty);
-    // println!("red   = {:?}", red);
+    let red = empty
+        .with_foreground(Color::Red);
 
-    let blue = Style::new().with_background(Color::Blue);
-
-    let both = Style::new()
-        .with_foreground(Color::Red)
+    let blue = Style::new()
         .with_background(Color::Blue);
+
+    let both = blue
+        .with_foreground(Color::Red)
+        .with_background(Color::Blue)
+        .with_bold(true)
+        .with_hidden(true);
     // println!("both = {:?}", both);
 
     println!(
         "Start {} {} {} End",
-        red.fmt("Red-FG"),
-        blue.fmt("Blue-BG"),
-        both.fmt("Both")
+        red.fmt("Red-FG".to_string()),
+        blue.fmt("Blue-BG".to_string()),
+        both.fmt("Both".to_string())
     );
 
-    println!("Start  \x1b[0;31mOne\x1b[0m  \x1b[0;44mTwo\x1b[0m  \x1b[1;44m \x1b[1;31m \x1b[5m Three \x1b[0m  End");
+    println!("");
+    let style = Style::new()
+        .with_foreground(Color::Red)
+        .with_background(Color::Blue)
+        .with_bold(true)
+        .with_width(30);
+    let text = r#"Hello, World!
+Hello, from Rust!
 
-    println!("Start \x1b[1;4;31;42mBlink!\x1b[0m End");
+..."#;
+    let res = style.fmt(text.to_string());
+    println!("{}", res);
 }
