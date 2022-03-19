@@ -1,5 +1,10 @@
+const ANSI_ESCAPE_PREFIX: &str = "\x1b[";
+const ANSI_ESCAPE_SUFFIX: &str = "m";
+const ANSI_RESET_STYLE_CODE: &str = "\x1b[0m";
 
-#[allow(dead_code)]
+const ANSI_FOREGROUND_PREFIX: &str = "3";
+const ANSI_BACKGROUND_PREFIX: &str = "4";
+
 #[derive(Debug, Copy, Clone)]
 pub enum Color {
     Reset,
@@ -11,73 +16,51 @@ pub enum Color {
     Purple,
     Cyan,
     LightGray,
-    DarkGray,
-    LightRed,
-    LightGreen,
-    Yellow,
-    LightBlue,
-    LightPurple,
-    LightCyan,
-    White,
+    // DarkGray,
+    // LightRed,
+    // LightGreen,
+    // Yellow,
+    // LightBlue,
+    // LightPurple,
+    // LightCyan,
+    // White,
 }
 
-#[allow(dead_code)]
 impl Color {
-    fn to_foreground(&self) -> &str {
+    fn get_ansi_num(self) -> &'static str {
         match self {
-            Color::Reset => "\x1b[0m",
-            Color::Black => "\x1b[30m",
-            Color::Red => "\x1b[31m",
-            Color::Green => "\x1b[32m",
-            Color::Brown => "\x1b[33m",
-            Color::Blue => "\x1b[34m",
-            Color::Purple => "\x1b[35m",
-            Color::Cyan => "\x1b[36m",
-            Color::LightGray => "\x1b[37m",
-            Color::DarkGray => "\x1b[1;30m",
-            Color::LightRed => "\x1b[1;31m",
-            Color::LightGreen => "\x1b[1;32m",
-            Color::Yellow => "\x1b[1;33m",
-            Color::LightBlue => "\x1b[1;34m",
-            Color::LightPurple => "\x1b[1;35m",
-            Color::LightCyan => "\x1b[1;36m",
-            Color::White => "\x1b[1;37m",
+            Black => "0",
+            Red => "1",
+            Green => "2",
+            Brown => "3",
+            Blue => "4",
+            Purple => "5",
+            Cyan => "6",
+            LightGray => "7",
+            Reset => "9",
         }
     }
 
-    fn to_background(&self) -> &str {
-        match self {
-            Color::Reset => "\x1b[0m",
-            Color::Black => "\x1b[0;40m",
-            Color::Red => "\x1b[0;41m",
-            Color::Green => "\x1b[0;42m",
-            Color::Brown => "\x1b[0;43m",
-            Color::Blue => "\x1b[0;44m",
-            Color::Purple => "\x1b[0;45m",
-            Color::Cyan => "\x1b[0;46m",
-            Color::LightGray => "\x1b[0;47m",
-            Color::DarkGray => "\x1b[1;40m",
-            Color::LightRed => "\x1b[1;41m",
-            Color::LightGreen => "\x1b[1;42m",
-            Color::Yellow => "\x1b[1;43m",
-            Color::LightBlue => "\x1b[1;44m",
-            Color::LightPurple => "\x1b[1;45m",
-            Color::LightCyan => "\x1b[1;46m",
-            Color::White => "\x1b[1;47m",
-        }
+    fn get_ansi_fg(self) -> String {
+        format!(
+            "{}{}{}",
+            ANSI_ESCAPE_PREFIX,
+            self.get_ansi_num(),
+            ANSI_ESCAPE_SUFFIX
+        )
     }
 }
 
-/// A style is a 
+/// Style stores terminal formating information.
 #[allow(dead_code)]
 #[derive(Debug, Copy, Clone)]
 pub struct Style {
     /// Foreground color
     fg: Option<Color>,
-    
+
     /// Background color
     bg: Option<Color>,
-    
+
     /// Is the text bold?
     bold: Option<bool>,
 
@@ -99,7 +82,6 @@ pub struct Style {
 
 #[allow(dead_code)]
 impl Style {
-
     /// Create a new, empty Style.
     pub fn new() -> Self {
         Style {
@@ -114,27 +96,100 @@ impl Style {
         }
     }
 
+    /// Set the foreground color.
     pub fn with_foreground(self, fg: Color) -> Self {
-        Style { fg: Some(fg), ..self }
+        Style {
+            fg: Some(fg),
+            ..self
+        }
     }
 
-    pub fn without_foreground(self) -> Self {
+    /// Remove the foreground color.
+    pub fn with_no_foreground(self) -> Self {
         Style { fg: None, ..self }
     }
 
+    /// Set the background color.
     pub fn with_background(self, bg: Color) -> Self {
-        Style { bg: Some(bg), ..self }
+        Style {
+            bg: Some(bg),
+            ..self
+        }
     }
 
+    /// Remove the background color.
+    pub fn with_no_background(self) -> Self {
+        Style { fg: None, ..self }
+    }
 
-    pub fn fmt(&self, text: &str) -> String {
+    /// Format the given text with this style.
+    pub fn fmt(self, text: &str) -> String {
         format!(
             "{}{}{}{}",
-            "", "",
+            "",
+            "",
             // self.bg.to_background(),
             // self.fg.to_foreground(),
             text,
             Color::Reset.to_foreground()
         )
+    }
+
+    fn get_fg(self) -> String {
+        match self.fg {
+            Some(fg) => match fg {
+                Color::Reset => format!(""),
+                Color::Black => format!(""),
+                Color::Red => format!(""),
+                Color::Green => format!(""),
+                Color::Brown => format!(""),
+                Color::Blue => format!(""),
+                Color::Purple => format!(""),
+                Color::Cyan => format!(""),
+            },
+            None => "".to_string(),
+        }
+    }
+    fn get_bg(self) -> String {
+        match self.bg {
+            Some(bg) => "",
+            None => "".to_string(),
+        }
+    }
+    fn get_bold(self) -> String {
+        match self.bold {
+            Some(bold) => "",
+            None => "",
+        }
+    }
+    fn get_underline(self) -> String {
+        match self.underline {
+            Some(underline) => "",
+            None => "".to_string(),
+        }
+    }
+    fn get_inverted(self) -> String {
+        match self.inverted {
+            Some(inverted) => "",
+            None => "".to_string(),
+        }
+    }
+    fn get_hidden(self) -> String {
+        match self.hidden {
+            Some(hidden) => "",
+            None => "".to_string(),
+        }
+    }
+    fn get_strikethrough(self) -> String {
+        match self.strikethrough {
+            Some(strikethrough) => "",
+            None => "".to_string(),
+        }
+    }
+    fn get_italic(self) -> String {
+        match self.italic {
+            Some(italic) => "",
+            None => "".to_string(),
+        }
     }
 }
