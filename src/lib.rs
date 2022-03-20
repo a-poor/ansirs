@@ -315,6 +315,30 @@ impl Style {
         Style { max_height: None, ..self}
     }
 
+    /// Return a new Style based on the current Style, but with
+    /// the specified maximum height.
+    pub fn with_haligh(self, align: Align) -> Self {
+        Style { halign: align, ..self }
+    }
+
+    /// Return a new Style based on the current Style, but with
+    /// the maximum height cleared.
+    pub fn clear_halign(self) -> Self {
+        Style { halign: Align::Start, ..self}
+    }
+
+    /// Return a new Style based on the current Style, but with
+    /// the specified maximum height.
+    pub fn with_valigh(self, align: Align) -> Self {
+        Style { valign: align, ..self }
+    }
+
+    /// Return a new Style based on the current Style, but with
+    /// the maximum height cleared.
+    pub fn clear_valign(self) -> Self {
+        Style { valign: Align::Start, ..self}
+    }
+
     /// Format the given text with this style.
     pub fn fmt(self, text: String) -> String {
         // Create a vector to store the ANSI codes.
@@ -377,8 +401,8 @@ impl Style {
         // Join the ANSI codes with semi-colons
         let ansi_codes = ansi_codes.join(";");
 
-        let mut formatted = self.fmt_width(text);
-        formatted = self.fmt_height(formatted);
+        let mut formatted = self.fmt_height(text);
+        formatted = self.fmt_width(formatted);
 
         // Format the string and return it...
         formatted.split("\n").map(|line| {
@@ -400,7 +424,21 @@ impl Style {
             let width = line.len();
             if let Some(min_width) = self.min_width {
                 if width < min_width {
-                    line.push_str(&" ".repeat(min_width - width));
+                    let diff = min_width - width;
+                    match self.halign {
+                        Align::Start => {
+                            line.push_str(&" ".repeat(diff));
+                        },
+                        Align::Middle => {
+                            let left_pad = diff / 2;
+                            let right_pad = diff - left_pad;
+                            line.insert_str(0, &" ".repeat(left_pad));
+                            line.push_str(&" ".repeat(right_pad));
+                        },
+                        Align::End => {
+                            line.insert_str(0, &" ".repeat(diff));
+                        },
+                    }
                 }
             }
             if let Some(max_width) = self.max_width {
@@ -413,7 +451,32 @@ impl Style {
     }
 
     fn fmt_height(self, text: String) -> String {
-        text
+        let mut new_text = text;
+        if let Some(min_height) = self.min_height {
+            if new_text.split('\n').count() < min_height {
+                let diff = min_height - new_text.split('\n').count();
+                match self.valign {
+                    Align::Start => {
+                        new_text.push_str(&"\n".repeat(diff));
+                    },
+                    Align::Middle => {
+                        let left_pad = diff / 2;
+                        let right_pad = diff - left_pad;
+                        new_text.insert_str(0, &"\n".repeat(left_pad));
+                        new_text.push_str(&"\n".repeat(right_pad));
+                    },
+                    Align::End => {
+                        new_text.insert_str(0, &"\n".repeat(diff));
+                    },
+                }
+            }
+        }
+        if let Some(max_height) = self.max_height {
+            if new_text.split('\n').count() > max_height {
+                new_text.truncate(new_text.rfind('\n').unwrap() + 1);
+            }
+        }
+        new_text
     }
 
 }
