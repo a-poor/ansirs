@@ -1,3 +1,5 @@
+use std::cmp;
+
 const ANSI_ESCAPE_PREFIX: &str = "\x1b[";
 const ANSI_ESCAPE_SUFFIX: &str = "m";
 const ANSI_RESET_STYLE_CODE: &str = "\x1b[0m";
@@ -37,6 +39,12 @@ pub enum Align {
     Start,
     Middle,
     End,
+}
+
+impl Default for Align {
+    fn default() -> Self {
+        Align::Start
+    }
 }
 
 
@@ -103,8 +111,15 @@ impl Color {
     }
 }
 
+#[derive(Debug, Copy, Clone, Default)]
+pub struct Spacing {
+    top: usize, 
+    right: usize, 
+    left: usize, 
+    bottom: usize
+}
+
 /// Style stores terminal formating information.
-#[allow(dead_code)]
 #[derive(Debug, Copy, Clone)]
 pub struct Style {
     /// Foreground color
@@ -141,6 +156,9 @@ pub struct Style {
 
     halign: Align,
     valign: Align,
+
+    padding: Spacing,
+    margin: Spacing,
 }
 
 #[allow(dead_code)]
@@ -162,6 +180,8 @@ impl Style {
             max_height: None,
             halign: Align::Start,
             valign: Align::Start,
+            padding: Spacing::default(),
+            margin: Spacing::default(),
         }
     }
 
@@ -419,39 +439,48 @@ impl Style {
 
 
     fn fmt_width(self, text: String) -> String {
-        text.split('\n').map(|line| {
+        // Calculate line widths
+        let mut width = text.split("\n").map(|line| line.len()).max().unwrap_or(0);
+        if let Some(min_width) = self.min_width {
+            width = cmp::max(width, min_width);
+        }
+        if let Some(max_width) = self.max_width {
+            width = cmp::min(width, max_width);
+        }
+
+        text.split("\n").map(|line| {
             let mut line = line.to_string();
-            let width = line.len();
-            if let Some(min_width) = self.min_width {
-                if width < min_width {
-                    let diff = min_width - width;
-                    match self.halign {
-                        Align::Start => {
-                            line.push_str(&" ".repeat(diff));
-                        },
-                        Align::Middle => {
-                            let left_pad = diff / 2;
-                            let right_pad = diff - left_pad;
-                            line.insert_str(0, &" ".repeat(left_pad));
-                            line.push_str(&" ".repeat(right_pad));
-                        },
-                        Align::End => {
-                            line.insert_str(0, &" ".repeat(diff));
-                        },
-                    }
+            if width > line.len() {
+                let diff = width - line.len();
+                match self.halign {
+                    Align::Start => {
+                        line.push_str(&" ".repeat(diff));
+                    },
+                    Align::Middle => {
+                        let left_pad = diff / 2;
+                        let right_pad = diff - left_pad;
+                        line.insert_str(0, &" ".repeat(left_pad));
+                        line.push_str(&" ".repeat(right_pad));
+                    },
+                    Align::End => {
+                        line.insert_str(0, &" ".repeat(diff));
+                    },
                 }
             }
-            if let Some(max_width) = self.max_width {
-                if width > max_width {
-                    line.truncate(max_width);
-                }
+            if width < line.len() {
+                line.truncate(width);
             }
             line
         }).collect::<Vec<String>>().join("\n")
     }
 
     fn fmt_height(self, text: String) -> String {
+        // Make a copy of the text
         let mut new_text = text;
+
+        // Add top/bottom margin and padding, if specified
+        
+        // Add newlines to pad to minimum width, if necessary
         if let Some(min_height) = self.min_height {
             if new_text.split('\n').count() < min_height {
                 let diff = min_height - new_text.split('\n').count();
@@ -480,3 +509,72 @@ impl Style {
     }
 
 }
+
+struct Text {    
+    min_width: Option<usize>,
+    max_width: Option<usize>,
+    min_height: Option<usize>,
+    max_height: Option<usize>,
+
+    halign: Align,
+    valign: Align,
+
+    margin: Spacing,
+    padding: Spacing,
+}
+
+impl Text {
+    fn new(text: String) -> Text {
+        Text {
+            min_width: None,
+            max_width: None,
+            min_height: None,
+            max_height: None,
+            halign: Align::Start,
+            valign: Align::Start,
+            margin: Spacing::default(),
+            padding: Spacing::default(),
+        }
+    }
+
+    /// Format the supplied text with the specified formatting options
+    /// 
+    /// # Arguments
+    /// 
+    /// * `text` - The text to format
+    /// * `formatter` - A function that takes a string and returns a formatted string
+    /// 
+    fn fmt(self, text: String, formatter: &dyn Fn(String) -> String) -> String {
+        // Get the supplied text's width and height
+        let height = text.split('\n').count();
+        let width = text.split('\n').map(|line| line.len()).max().unwrap_or(0);
+
+        // Create a container to hold the resulting text
+        let mut lines = text.split("\n")
+            .map(|line| line.to_string())
+            .collect::<Vec<String>>();
+
+        // lines = lines.iter().map(|line| {
+        //     // Format the line
+        //     let line = formatter(line.to_string());
+
+        //     // Return the line
+        //     line
+        // }).collect::<Vec<String>>();
+
+        // Return the formatted text
+        lines.join("\n")
+    }
+}
+
+// TODO: Rewrite the min/max width/height (w/ padding & margin) formatter.
+// 
+// - min-width should include padding but not margin
+// - max-width should include all spaces but shouldn't affect the styling
+// 
+// 
+// - style and format the text as a vector of strings
+// - start with the styled text (line text + min-width/height + padding), but not styled yet
+// - ...
+// 
+
